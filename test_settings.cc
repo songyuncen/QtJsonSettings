@@ -7,16 +7,18 @@
 #include "qt_json_settings.h"
 
 class TestJsonSettings : public QObject {
-  Q_OBJECT
+Q_OBJECT
  private slots:
   void initTestCase() {
+    RemoveSettingsFiles();
     QtJsonSettings::Initialize();
+    CreateSettingsFile("TestRead.json");
+    CreateSettingsFile("TestModify.json");
   }
 
   void TestRead() {
-    CreateSettingsFile(fname_);
-
-    QSettings settings(fname_, QtJsonSettings::GetFormat());
+    QDir dir = QCoreApplication::applicationDirPath();
+    QSettings settings(dir.absoluteFilePath("TestRead.json"), QtJsonSettings::GetFormat());
     QCOMPARE(settings.value("a"), 12);
     QCOMPARE(settings.value("b"), 1.23);
     QCOMPARE(settings.value("c"), "d:/projects");
@@ -30,17 +32,23 @@ class TestJsonSettings : public QObject {
     l = settings.value("e/i").toList();
     r = QList<QVariant>{ 1.1, 3.3, 7.7 };
     QCOMPARE(l, r);
+
+    QCOMPARE(settings.value("e/j/k"), 734);
+    l = settings.value("e/j/l").toList();
+    r = QList<QVariant>{ 123, 3.3, "abc" };
+    QCOMPARE(l, r);
+    QCOMPARE(settings.value("e/j/m"), "ccc");
   }
 
   void TestModify() {
-    CreateSettingsFile(fname_);
-
     QList<QVariant> colors;
     colors << QVariant::fromValue<QColor>(Qt::red);
     colors << QVariant::fromValue<QColor>(Qt::green);
     colors << QVariant::fromValue<QColor>(Qt::blue);
+
+    QDir dir = QCoreApplication::applicationDirPath();
     {
-      QSettings settings(fname_, QtJsonSettings::GetFormat());
+      QSettings settings(dir.absoluteFilePath("TestModify.json"), QtJsonSettings::GetFormat());
       settings.setValue("a", 3.3);
       settings.setValue("k", "abc");
       settings.setValue("d", QList<QVariant>{1, 1.2, "abc"});
@@ -52,7 +60,7 @@ class TestJsonSettings : public QObject {
       settings.sync();
     }
     {
-      QSettings settings(fname_, QtJsonSettings::GetFormat());
+      QSettings settings(dir.absoluteFilePath("TestModify.json"), QtJsonSettings::GetFormat());
       QCOMPARE(settings.value("a"), 3.3);
       QCOMPARE(settings.value("k"), "abc");
       QCOMPARE(settings.value("e/f"), "def");
@@ -69,7 +77,6 @@ class TestJsonSettings : public QObject {
   }
 
  private:
-  const QString fname_ = "settings.json";
   /*
     {
       "a" : 12,
@@ -82,17 +89,28 @@ class TestJsonSettings : public QObject {
         "g" : 23.4,
         "h" : "f:/k.bmp"
         "i" : [1.1, 3.3, 7.7]
+        "j" : {
+          "k" : 734,
+          "l" : [
+            123,
+            3.3,
+            "abc"
+          ],
+          "m" : "ccc"
+        }
       }
     }
   */
-  void CreateSettingsFile(const QString &fname) {
-    QFileInfo info(fname);
-    if (info.exists()) {
-      QFile file(fname);
-      file.remove();
-    }
 
-    QSettings settings(fname, QtJsonSettings::GetFormat());
+  void RemoveSettingsFiles() {
+    QDir dir = QCoreApplication::applicationDirPath();
+    dir.remove("TestRead.json");
+    dir.remove("TestModify.json");
+  }
+
+  void CreateSettingsFile(const QString &fname) {
+    QDir dir = QCoreApplication::applicationDirPath();
+    QSettings settings(dir.absoluteFilePath(fname), QtJsonSettings::GetFormat());
     settings.setValue("a", 12);
     settings.setValue("b", 1.23);
     settings.setValue("c", "d:/projects");
@@ -103,9 +121,13 @@ class TestJsonSettings : public QObject {
     settings.setValue("e/h", "f:/k.bmp");
     arr = { 1.1, 3.3, 7.7 };
     settings.setValue("e/i", arr);
+    settings.setValue("e/j/k", 734);
+    arr = { 123, 3.3, "abc" };
+    settings.setValue("e/j/l", arr);
+    settings.setValue("e/j/m", "ccc");
     settings.sync();
   }
-};
+ };
 
 QTEST_MAIN(TestJsonSettings)
 #include "test_settings.moc"

@@ -29,54 +29,25 @@ QSettings::Format GetFormat() {
 
 }  // namespace QtJsonSettings
 
-bool ReadValueFromJson(const QJsonDocument &doc, const QString &key, QVariant *value) {
-  QStringList names = key.split("/", Qt::SkipEmptyParts);
-  if (names.size() == 0) {
-    return false;
-  }
-
-  int idx = 0;
-  if (!doc.object().contains(names[idx])) {
-    return false;
-  }
-
-  QJsonValue val = doc[names[idx++]];
-  for (; idx < names.size(); ++idx) {
-    if (!val.isObject()) {
-      return false;
+void FlattenVariantMap(const QVariantMap &input, const QString &prefix, QSettings::SettingsMap *settings) {
+  for (auto iter = input.cbegin(); iter != input.cend(); ++iter) {
+    if (iter->type() == QMetaType::QVariantMap) {
+      FlattenVariantMap(iter->toMap(), prefix + iter.key() + "/", settings);
+    } else {
+      (*settings)[prefix + iter.key()] = (*iter);
     }
-
-    QJsonObject obj = val.toObject();
-    if (!obj.contains(names[idx])) {
-      return false;
-    }
-    val = obj[names[idx]];
   }
-
-  if (val.isNull() || val.isObject()) {
-    return false;
-  } else if (val.isArray()) {
-    *value = val.toArray().toVariantList();
-  } else {
-    *value = val.toVariant();
-  }
-
-  return true;
 }
 
 bool ReadJsonSettingsFile(QIODevice &device, QSettings::SettingsMap &settings) {
   QByteArray data = device.readAll();
   QJsonDocument doc = QJsonDocument::fromJson(data);
-
-  for (QString &key : settings.keys()) {
-    QVariant value;
-    if (ReadValueFromJson(doc, key, &value)) {
-      settings[key] = value;
-    } else {
-      return false;
-    }
+  if (doc.object().isEmpty()) {   // is array
+    return false;
   }
 
+  QVariantMap values = doc.object().toVariantMap();
+  FlattenVariantMap(values, "", &settings);
   return true;
 }
 
