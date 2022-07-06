@@ -79,13 +79,8 @@ bool WriteValueToJson(QJsonObject &doc, const QString &key, const QVariant &valu
 }
 
 bool WriteJsonSettingsFile(QIODevice &device, const QSettings::SettingsMap &settings) {
-  QByteArray data = device.readAll();
   QJsonDocument doc;
-  if (data.size() == 0) {
-    doc.setObject(QJsonObject());
-  } else {
-    doc = QJsonDocument::fromJson(data);
-  }
+  doc.setObject(QJsonObject());
 
   QJsonObject root = doc.object();
 
