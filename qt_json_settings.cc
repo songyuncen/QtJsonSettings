@@ -29,9 +29,18 @@ QSettings::Format GetFormat() {
 
 }  // namespace QtJsonSettings
 
+int GetVariantMetaType(const QVariant& var)
+{
+#if QT_VERSION_MAJOR == 6
+    return var.typeId();
+#else
+    return static_cast<int>(var.type());
+#endif
+}
+
 void FlattenVariantMap(const QVariantMap &input, const QString &prefix, QSettings::SettingsMap *settings) {
   for (auto iter = input.cbegin(); iter != input.cend(); ++iter) {
-    if (iter->type() == QMetaType::QVariantMap) {
+        if (GetVariantMetaType(*iter) == QMetaType::QVariantMap) {
       FlattenVariantMap(iter->toMap(), prefix + iter.key() + "/", settings);
     } else {
       (*settings)[prefix + iter.key()] = (*iter);
