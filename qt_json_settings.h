@@ -8,7 +8,7 @@
 # define JsonExport __declspec(dllimport)
 #endif
 #else
-#define QtJsonSettings
+#define JsonExport
 #endif
 
 #include <QSettings>
